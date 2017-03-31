@@ -42,9 +42,6 @@ def master():
         resp = {"is_master": False}
         node = gl.get_node(content['node_id'])
 
-        print gl.master_picked()
-        print gl.master
-
         if gl.master_picked():
             print "Got a request to make node master, but we already have a master."
             return jsonify(resp)

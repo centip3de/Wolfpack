@@ -2,14 +2,9 @@ import sys
 import time
 import requests
 import uuid
+import random
 
-class Master(object):
-    def __init__(self):
-        self.ip_address = None
-        self.running = True
-
-    def register(self):
-        pass
+import master
 
 class Slave(object):
     def __init__(self):
@@ -45,26 +40,40 @@ class Slave(object):
         else:
             return True
 
+    def release_access(self):
+        print "I'm releasing access and letting others do stuff"
+        resp = requests.post('http://127.0.0.1:6544/release/doc_1')
+
     def make_edit(self):
         print "I'm taking my turn and making an edit."
+        possible_edits = ["Edit", "Test", "Adding stuff", "Adding more stuff", "Blah",
+            "Foo", "Bar", "Baz", "Bin", "Bake", "Fake", "Sake", "Jake", "Daisy", "Tumwater",
+            "Snake", "Cake", "Rake", "Make", "Lake", "Break", "Long line of text"]
+
+        resp = requests.post('http://127.0.0.1:6544/edit/doc_1',
+            json={'node_id':self.node_id, 'edit': random.choice(possible_edits)})
 
     def request_access(self):
         print "I'm seeing if I can edit yet."
-        return False
+        resp = requests.post('http://127.0.0.1:6544/request/doc_1',
+            json={'node_id':self.node_id}).json()
+        return resp['can_edit']
+
 
 def become_master():
-    master = Master()
-    master.register()
+    foo = master.Master()
+    foo.begin_serving()
 
 
 def become_slave(slave):
     while(slave.running):
         if slave.request_access():
-            make_edit()
+            slave.make_edit()
+            slave.release_access()
         else:
             pass
         print "I've done my thing, going to sleep for a second to simulate... I dunno... something?"
-        time.sleep(1)
+        time.sleep(5)
 
 if __name__ == '__main__':
     slave = Slave()
