@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-class Master(object):
+class Alpha(object):
     docs = {}
     doc_contents = {}
 
@@ -21,35 +21,35 @@ class Master(object):
 @app.route('/edit/<doc_id>', methods=["POST"])
 def handle_edit(doc_id):
     content = request.json
-    if doc_id in Master.docs:
-        if Master.docs[doc_id] == content['node_id']:
-            if doc_id in Master.doc_contents:
-                Master.doc_contents[doc_id].append(content['edit'])
+    if doc_id in Alpha.docs:
+        if Alpha.docs[doc_id] == content['node_id']:
+            if doc_id in Alpha.doc_contents:
+                Alpha.doc_contents[doc_id].append(content['edit'])
             else:
-                Master.doc_contents[doc_id] = [content['edit']]
+                Alpha.doc_contents[doc_id] = [content['edit']]
 
-            print "Making an edit to doc " + str(doc_id) + ". Content is now:\n " + "\n".join(Master.doc_contents[doc_id])
-            return jsonify({'result': Master.doc_contents[doc_id]})
+            print "Making an edit to doc " + str(doc_id) + ". Content is now:\n " + "\n".join(Alpha.doc_contents[doc_id])
+            return jsonify({'result': Alpha.doc_contents[doc_id]})
 
     return jsonif({'result': 'Error'})
 
 @app.route('/request/<doc_id>', methods=["POST"])
 def handle_request(doc_id):
     content = request.json
-    if doc_id in Master.docs:
-        if Master.docs[doc_id] is not None:
+    if doc_id in Alpha.docs:
+        if Alpha.docs[doc_id] is not None:
             return jsonify({'can_edit':False})
         else:
-            Master.docs[doc_id] = content['node_id']
+            Alpha.docs[doc_id] = content['node_id']
             return jsonify({'can_edit':True})
     else:
-        Master.docs[doc_id] = content['node_id']
+        Alpha.docs[doc_id] = content['node_id']
         return jsonify({'can_edit':True})
 
 @app.route('/release/<doc_id>', methods=["POST"])
 def handle_release(doc_id):
     content = request.json
-    if doc_id in Master.docs:
-        Master.docs[doc_id] = None
+    if doc_id in Alpha.docs:
+        Alpha.docs[doc_id] = None
 
     return jsonify({})

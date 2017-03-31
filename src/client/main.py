@@ -4,30 +4,30 @@ import requests
 import uuid
 import random
 
-import master
+import alpha
 
 class Slave(object):
     def __init__(self):
         self.node_id = str(uuid.uuid4())
-        self.is_master = False
+        self.is_alpha = False
         self.running = True
         self.registered = True
 
-    def try_master(self):
-        print "Trying to become master!"
-        resp = requests.post('http://127.0.0.1:6543/master',
+    def try_alpha(self):
+        print "Trying to become alpha!"
+        resp = requests.post('http://127.0.0.1:6543/alpha',
             json={'node_id': self.node_id}).json()
 
-        if resp['is_master']:
-            print "I am master!"
-            self.is_master = True
+        if resp['is_alpha']:
+            print "I am alpha!"
+            self.is_alpha = True
             self.running = False
         else:
             print "I am a slave!"
 
-    def get_master(self):
-        resp = requests.get('http://127.0.0.1:6543/master').json()
-        return json['master']
+    def get_alpha(self):
+        resp = requests.get('http://127.0.0.1:6543/alpha').json()
+        return json['alpha']
 
     def register(self):
         print "I'm registering with the server."
@@ -60,8 +60,8 @@ class Slave(object):
         return resp['can_edit']
 
 
-def become_master():
-    foo = master.Master()
+def become_alpha():
+    foo = alpha.Alpha()
     foo.begin_serving()
 
 
@@ -79,9 +79,9 @@ if __name__ == '__main__':
     slave = Slave()
 
     if slave.register():
-        slave.try_master()
-        if slave.is_master:
-            become_master()
+        slave.try_alpha()
+        if slave.is_alpha:
+            become_alpha()
 
         else:
             become_slave(slave)

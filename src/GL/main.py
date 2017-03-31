@@ -4,54 +4,54 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 class Node(object):
-    def __init__(self, node_id, is_master):
+    def __init__(self, node_id, is_alpha):
         self.node_id = node_id
-        self.is_master = is_master
+        self.is_alpha = is_alpha
 
 class GL(object):
     def __init__(self):
         self.nodes = []
-        self.master = None
+        self.alpha = None
 
     def register_node(self, node):
         self.nodes.append(node)
         return node
 
-    def pick_master(self, node):
-        self.master = random.choice(self.nodes)
-        return self.master
+    def pick_alpha(self, node):
+        self.alpha = random.choice(self.nodes)
+        return self.alpha
 
-    def master_picked(self):
-        return self.master is not None
+    def alpha_picked(self):
+        return self.alpha is not None
 
     def get_node(self, node_id):
         for node in self.nodes:
             if node.node_id == node_id:
                 return node
 
-    def make_master(self, node):
-        self.master = node
-        node.is_master = True
+    def make_alpha(self, node):
+        self.alpha = node
+        node.is_alpha = True
 
 gl = GL()
 
-@app.route('/master', methods=['POST', 'GET'])
-def master():
+@app.route('/alpha', methods=['POST', 'GET'])
+def alpha():
     if request.method == 'POST':
         content = request.json
-        resp = {"is_master": False}
+        resp = {"is_alpha": False}
         node = gl.get_node(content['node_id'])
 
-        if gl.master_picked():
-            print "Got a request to make node master, but we already have a master."
+        if gl.alpha_picked():
+            print "Got a request to make node alpha, but we already have a alpha."
             return jsonify(resp)
         else:
-            print "No master picked, making master node with ID: " + str(node.node_id)
-            gl.make_master(node)
-            resp['is_master'] = True
+            print "No alpha picked, making alpha node with ID: " + str(node.node_id)
+            gl.make_alpha(node)
+            resp['is_alpha'] = True
             return jsonify(resp)
     else:
-        resp = {'master': gl.master}
+        resp = {'alpha': gl.alpha}
         return jsonify(resp)
 
 
