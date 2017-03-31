@@ -6,11 +6,12 @@ class Alpha(object):
     docs = {}
     doc_contents = {}
 
-    def __init__(self):
+    def __init__(self, port):
         self.ip_address = None
+        self.port = port
 
     def begin_serving(self):
-        app.run(host="0.0.0.0", port=6544)
+        app.run(host="0.0.0.0", port=self.port)
 
     def shutdown_server(self):
         func = request.environ.get('werkzeug.server.shutdown')

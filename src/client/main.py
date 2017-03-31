@@ -12,6 +12,7 @@ class Slave(object):
         self.is_alpha = False
         self.running = True
         self.registered = True
+        self.alpha_port
 
     def try_alpha(self):
         print "Trying to become alpha!"
@@ -24,6 +25,8 @@ class Slave(object):
             self.running = False
         else:
             print "I am a slave!"
+
+        return resp
 
     def get_alpha(self):
         resp = requests.get('http://127.0.0.1:6543/alpha').json()
@@ -60,12 +63,16 @@ class Slave(object):
         return resp['can_edit']
 
 
-def become_alpha():
-    foo = alpha.Alpha()
+def become_alpha(port):
+    foo = alpha.Alpha(port)
     foo.begin_serving()
 
 
-def become_slave(slave):
+def become_slave(slave, alpha_port, port):
+    print "My port is: " + str(port)
+    print "Alpha's port is: " + str(alpha_port)
+    slave.alpha_port = alpha_port
+
     while(slave.running):
         if slave.request_access():
             slave.make_edit()
@@ -79,9 +86,8 @@ if __name__ == '__main__':
     slave = Slave()
 
     if slave.register():
-        slave.try_alpha()
+        resp = slave.try_alpha()
         if slave.is_alpha:
-            become_alpha()
-
+            become_alpha(resp['port'])
         else:
-            become_slave(slave)
+            become_slave(slave, resp['alpha_port'], resp['port'])
