@@ -2,6 +2,7 @@ import random
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+
 class Node(object):
     def __init__(self, node_id, is_master):
         self.node_id = node_id
@@ -14,7 +15,7 @@ class GL(object):
 
     def register_node(self, node):
         self.nodes.append(node)
-        return node in self.nodes
+        return node
 
     def pick_master(self, node):
         self.master = random.choice(self.nodes)
@@ -24,7 +25,7 @@ class GL(object):
         return self.master is not None
 
     def get_node(self, node_id):
-        for node in nodes:
+        for node in self.nodes:
             if node.node_id == node_id:
                 return node
 
@@ -41,8 +42,11 @@ def master():
         resp = {"is_master": False}
         node = gl.get_node(content['node_id'])
 
-        if gl.master_picked:
-            print "Got a request to make node with ID: " + str(node.node_id) + ", but node with ID " + str(gl.master.node_id) + " is already master."
+        print gl.master_picked()
+        print gl.master
+
+        if gl.master_picked():
+            print "Got a request to make node master, but we already have a master."
             return jsonify(resp)
         else:
             print "No master picked, making master node with ID: " + str(node.node_id)
@@ -57,8 +61,10 @@ def master():
 @app.route('/register', methods=['POST'])
 def register():
     content = request.json
-    gl.register_node(Node(content['node_id'], False))
+    print content
+    node = gl.register_node(Node(content['node_id'], False))
     print "Registering new node with ID: " + str(node.node_id)
+    return jsonify({'registered': node in gl.nodes})
 
 @app.route('/')
 def main():
