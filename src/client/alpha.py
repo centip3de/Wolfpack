@@ -5,6 +5,7 @@ app = Flask(__name__)
 class Alpha(object):
     docs = {}
     doc_contents = {}
+    shutdown = False
 
     def __init__(self, port):
         self.ip_address = None
@@ -12,12 +13,26 @@ class Alpha(object):
 
     def begin_serving(self):
         app.run(host="0.0.0.0", port=self.port)
+        return Alpha.shutdown
 
-    def shutdown_server(self):
+    def shutdown_server():
         func = request.environ.get('werkzeug.server.shutdown')
         if func is None:
             raise RuntimeError('Not running with the Werkzeug Server')
         func()
+
+@app.route('/ping', methods=["POST"])
+def handle_ping():
+    print "I'm being pinged by GL."
+    content = request.json
+    return jsonify({'word':content['word']})
+
+
+@app.route('/demote', methods=["POST"])
+def handle_demotion():
+    print "I'm being demoted. :( Killing my server."
+    Alpha.shutdown = True
+    Alpha.shutdown_server()
 
 @app.route('/edit/<doc_id>', methods=["POST"])
 def handle_edit(doc_id):

@@ -3,6 +3,7 @@ import time
 import requests
 import uuid
 import random
+from requests.exceptions import ConnectionError, Timeout
 
 import alpha
 
@@ -12,7 +13,9 @@ class Slave(object):
         self.is_alpha = False
         self.running = True
         self.registered = True
-        self.alpha_port
+        self.alpha_port = 0
+        self.gl_port = 6543
+        self.base_url = "http://127.0.0.1"
 
     def try_alpha(self):
         print "Trying to become alpha!"
@@ -45,7 +48,33 @@ class Slave(object):
 
     def release_access(self):
         print "I'm releasing access and letting others do stuff"
-        resp = requests.post('http://127.0.0.1:6544/release/doc_1')
+        url = self.base_url + ":" + str(self.alpha_port) + "/release/doc_1"
+        resp = requests.post(url)
+
+    def new_alpha(self):
+        print "Trying to tell GL that we need a new alpha."
+        try:
+            url = self.base_url + ":" + str(self.gl_port) + "/new_alpha"
+            resp = requests.post(url, timeout=15).json()
+            if resp['alpha'] != self.alpha_port:
+                print "New alpha has been chosen."
+                alpha_port = resp['alpha']
+                alpha_id = resp['alpha_id']
+
+                if alpha_id == self.node_id:
+                    print "I've been promoted to alpha!"
+                    self.running = False
+                    become_alpha(alpha_port)
+                else:
+                    print "I am not the new alpha... and that's fine. :("
+                    self.alpha_port = alpha_port
+            else:
+                print "Weird shit is going on"
+                print "I think alpha's port is: " + str(self.alpha_port)
+
+        except (Timeout, ConnectionError):
+            print "Couldn't connect to the GL either. There's a problem with me. Shutting down."
+            sys.exit(-1)
 
     def make_edit(self):
         print "I'm taking my turn and making an edit."
@@ -53,19 +82,35 @@ class Slave(object):
             "Foo", "Bar", "Baz", "Bin", "Bake", "Fake", "Sake", "Jake", "Daisy", "Tumwater",
             "Snake", "Cake", "Rake", "Make", "Lake", "Break", "Long line of text"]
 
-        resp = requests.post('http://127.0.0.1:6544/edit/doc_1',
-            json={'node_id':self.node_id, 'edit': random.choice(possible_edits)})
+        url = self.base_url + ":" + str(self.alpha_port) + "/edit/doc_1"
+        try:
+            resp = requests.post(url,
+                json={
+                    'node_id':self.node_id,
+                    'edit': random.choice(possible_edits)
+                }, timeout=5).json()
+        except (Timeout, ConnectionError):
+            print "Couldn't connect to master! Telling GL."
+            self.new_alpha()
 
     def request_access(self):
         print "I'm seeing if I can edit yet."
-        resp = requests.post('http://127.0.0.1:6544/request/doc_1',
-            json={'node_id':self.node_id}).json()
-        return resp['can_edit']
+        try:
+            url = self.base_url + ":" + str(self.alpha_port) + "/request/doc_1"
+            resp = requests.post(url,
+                json={'node_id':self.node_id}, timeout=5).json()
+            return resp['can_edit']
+        except (Timeout, ConnectionError):
+            print "Couldn't connect to master! Telling GL."
+            self.new_alpha()
 
 
 def become_alpha(port):
     foo = alpha.Alpha(port)
-    foo.begin_serving()
+    shutdown = foo.begin_serving()
+    if shutdown:
+        print "Becoming slave."
+        main()
 
 
 def become_slave(slave, alpha_port, port):
@@ -80,9 +125,9 @@ def become_slave(slave, alpha_port, port):
         else:
             pass
         print "I've done my thing, going to sleep for a second to simulate... I dunno... something?"
-        time.sleep(5)
+        time.sleep(2)
 
-if __name__ == '__main__':
+def main():
     slave = Slave()
 
     if slave.register():
@@ -91,3 +136,6 @@ if __name__ == '__main__':
             become_alpha(resp['port'])
         else:
             become_slave(slave, resp['alpha_port'], resp['port'])
+
+if __name__ == "__main__":
+    main()

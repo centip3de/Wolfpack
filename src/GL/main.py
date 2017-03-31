@@ -1,4 +1,8 @@
 import random
+import sys
+import time
+import requests
+from requests.exceptions import ConnectionError, Timeout
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -20,8 +24,12 @@ class GL(object):
         self.nodes.append(node)
         return node
 
-    def pick_alpha(self, node):
+    def pick_alpha(self):
+        self.nodes.remove(self.alpha)
+
         self.alpha = random.choice(self.nodes)
+        self.alpha_port = self.alpha.port
+        self.alpha.is_alpha = True
         return self.alpha
 
     def alpha_picked(self):
@@ -38,6 +46,35 @@ class GL(object):
         self.alpha_port = node.port
 
 gl = GL()
+
+@app.route('/new_alpha', methods=["POST"])
+def new_alpha():
+    print "Just heard we couldn't contact alpha. Pinging."
+    words = ["Duck", "Luck", "Shuck", "Truck"]
+    random_word = random.choice(words)
+    try:
+        url = "http://127.0.0.1:" + str(gl.alpha_port) + "/ping"
+        resp = requests.post(url, timeout=10, json={'word':random_word}).json()
+        print "Sent: " + random_word + " Received: " + resp['word']
+        if resp['word'] == random_word:
+            print "I could connect to alpha. Ignoring new alpha request."
+            return jsonify(
+                    {
+                        'alpha':gl.alpha_port,
+                        'alpha_id':gl.alpha.node_id
+                    })
+        else:
+            print "Weird shit's happening. Quitting."
+            sys.exit(-1)
+
+    except (Timeout, ConnectionError):
+        print "I couldn't contact alpha either. Choosing new alpha."
+        new_alpha = gl.pick_alpha()
+        print "New alpha port: " + str(new_alpha.port)
+        return jsonify({
+            'alpha':new_alpha.port,
+            'alpha_id':new_alpha.node_id
+            })
 
 @app.route('/alpha', methods=['POST', 'GET'])
 def alpha():
